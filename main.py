@@ -13,12 +13,19 @@ logger.addHandler(handler)
 client = discord.Client()
 
 class Reminder:
-    def __init__(self, user, remind_time):
-        self.user = user
-        self.remind_time = remind_time
+    def __init__(self, member, timer_start=None):
+        self.member = member
+        self.timer_start = timer_start or time.time()
     
+    def reminder_time(self):
+        reminder_role = discord.utils.find(lambda r: r.name.endswith(" hour"), self.member.roles)
+        return self.timer_start + int(reminder_role.name.split()[0]) * 3600    # CHANGE THIS BACK TO AN 3600 BEFORE COMMIT
+
+    def reset(self, timer_start=None):
+        self.timer_start = timer_start or time.time()
+
     def __repr__(self):
-        return "{} {}".format(self.user.name, self.remind_time)
+        return "{} {}".format(self.member.name, self.reminder_time())
 
 reminders = []
 
@@ -29,19 +36,50 @@ async def on_ready():
     print(client.user.id)
     print("------")
 
+    # On startup, check for users who are playing osu! and set their reminders
+    global reminders
+    for member in client.get_server("412943020850413570").members:
+        if member.game != None and member.game.name == "osu!" and discord.utils.find(lambda r: r.name.endswith(" hour"), member.roles):
+            reminders.append(Reminder(member))
+
+@client.event
+async def on_message(message):
+    # check for !set command
+    if message.content.lower().startswith("!set ") and len(message.content.split()) > 1:
+        await update_role(message)
+
 @client.event
 async def on_member_update(before, after):
+    # check if member has a reminder role
+    reminder_role = discord.utils.find(lambda r: r.name.endswith(" hour"), after.roles)
+    if not reminder_role:
+        return
+
     global reminders
     # if user wasnt playing osu, and now is
     if (before.game == None or before.game.name != "osu!") and (after.game != None and after.game.name == "osu!"):
         # set reminder
-        reminders.append(Reminder(after, time.time() + 3600))
+        reminders.append(Reminder(after))
         logging.info("Set reminder for {} ({})".format(after.name, after.id))
     # elif user was playing osu, and now isnt
     elif (before.game != None and before.game.name == "osu!") and (after.game == None or after.game.name != "osu!"):
         # cancel reminder
-        reminders = [r for r in reminders if r.user != after]
+        reminders = [r for r in reminders if r.member != after]
         logging.info("Cancelled reminder for {} ({})".format(after.name, after.id))
+
+async def update_role(message):
+    role_name = message.content.split(maxsplit=1)[1].lower()
+    if role_name == "none":
+        await client.remove_roles(message.author, *[r for r in message.author.roles if r.name.endswith(" hour")])
+        await client.send_message(message.channel, "Reminders stopped for {}".format(message.author.mention))
+        logging.info("Removing roles from {} ({})".format(message.author.name, message.author.id))
+    elif role_name in ["1 hour", "2 hour", "3 hour"]:
+        role = discord.utils.get(message.server.roles, name=role_name)
+        await client.replace_roles(message.author, *([r for r in message.author.roles if not r.name.endswith(" hour")] + [role]))
+        await client.send_message(message.channel, "{} reminders set for {}".format(role_name, message.author.mention))
+        logging.info("Setting {} role from {} ({})".format(role_name, message.author.name, message.author.id))
+    else:
+        await client.send_message(message.channel, "{} is not a valid role {}".format(role_name, message.author.mention))
 
 async def reminder_checks():
     await client.wait_until_ready()
@@ -50,16 +88,17 @@ async def reminder_checks():
     
     while not client.is_closed:
         for reminder in reminders:
-            if reminder.remind_time < time.time():
+            if reminder.reminder_time() < time.time():
                 passed_reminders.append(reminder)
-                reminder.remind_time += 3600
+                reminder.reset()
         
         if len(passed_reminders) > 0:
-            mentions = " ".join([ reminder.user.mention for r in passed_reminders ])
+            mentions = " ".join([ reminder.member.mention for r in passed_reminders ])
             await client.send_message(reminder_channel, mentions + " Time to stretch!")
-            logging.info("Reminder sent to: " + ", ".join([ r.user.name for r in passed_reminders ]))
+            logging.info("Reminder sent to: " + ", ".join([ r.member.name for r in passed_reminders ]))
 
         passed_reminders.clear()
+        print(reminders)
         await asyncio.sleep(10)
 
 
