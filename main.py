@@ -19,7 +19,7 @@ class Reminder:
     
     def reminder_time(self):
         reminder_role = discord.utils.find(lambda r: r.name.endswith(" hour"), self.member.roles)
-        return self.timer_start + int(reminder_role.name.split()[0]) * 3600
+        return self.timer_start + float(reminder_role.name.split()[0]) * 3600
 
     def reset(self, timer_start=None):
         self.timer_start = timer_start or time.time()
@@ -73,7 +73,7 @@ async def update_role(message):
         await client.remove_roles(message.author, *[r for r in message.author.roles if r.name.endswith(" hour")])
         await client.send_message(message.channel, "Reminders stopped for {}".format(message.author.mention))
         logging.info("Removing roles from {} ({})".format(message.author.name, message.author.id))
-    elif role_name in ["1 hour", "2 hour", "3 hour"]:
+    elif role_name in ["0.5 hour", "1 hour", "2 hour", "3 hour"]:
         role = discord.utils.get(message.server.roles, name=role_name)
         await client.replace_roles(message.author, *([r for r in message.author.roles if not r.name.endswith(" hour")] + [role]))
         await client.send_message(message.channel, "{} reminders set for {}".format(role_name, message.author.mention))
