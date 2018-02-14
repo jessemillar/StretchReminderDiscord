@@ -19,7 +19,7 @@ class Reminder:
     
     def reminder_time(self):
         reminder_role = discord.utils.find(lambda r: r.name.endswith(" hour"), self.member.roles)
-        return self.timer_start + int(reminder_role.name.split()[0]) * 3600    # CHANGE THIS BACK TO AN 3600 BEFORE COMMIT
+        return self.timer_start + int(reminder_role.name.split()[0]) * 3600
 
     def reset(self, timer_start=None):
         self.timer_start = timer_start or time.time()
@@ -98,7 +98,6 @@ async def reminder_checks():
             logging.info("Reminder sent to: " + ", ".join([ r.member.name for r in passed_reminders ]))
 
         passed_reminders.clear()
-        print(reminders)
         await asyncio.sleep(10)
 
 
