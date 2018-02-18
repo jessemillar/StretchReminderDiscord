@@ -16,13 +16,11 @@ class Reminder:
     def __init__(self, member, timer_start=None):
         self.member = member
         self.timer_start = timer_start or time.time()
+        logging.INFO("Reminder created: " + str(self))
     
     def reminder_time(self):
         reminder_role = discord.utils.find(lambda r: r.name.endswith(" hour"), self.member.roles)
         return self.timer_start + float(reminder_role.name.split()[0]) * 3600
-
-    def reset(self, timer_start=None):
-        self.timer_start = timer_start or time.time()
 
     def __repr__(self):
         return "{} {}".format(self.member.name, self.reminder_time())
@@ -90,9 +88,11 @@ async def reminder_checks():
         for reminder in reminders:
             if reminder.reminder_time() < time.time():
                 passed_reminders.append(reminder)
-                reminder.reset()
         
         if len(passed_reminders) > 0:
+            for reminder in passed_reminders:
+                reminders.remove(reminder)  # remove old reminder
+                reminders.append(Reminder(reminder.member)) # create new reminder (maybe this will stop it from breaking???)
             mentions = " ".join([ reminder.member.mention for r in passed_reminders ])
             await client.send_message(reminder_channel, mentions + " Time to stretch!")
             logging.info("Reminder sent to: " + ", ".join([ r.member.name for r in passed_reminders ]))
