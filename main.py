@@ -80,6 +80,7 @@ async def update_role(message):
         await client.send_message(message.channel, "{} is not a valid role {}".format(role_name, message.author.mention))
 
 async def reminder_checks():
+    global reminders
     await client.wait_until_ready()
     reminder_channel = discord.Object(id="412943327688785920")  # channel: #reminders
     passed_reminders = []
