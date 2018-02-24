@@ -39,6 +39,9 @@ async def on_ready():
     for member in client.get_server("412943020850413570").members:
         if member.game != None and member.game.name == "osu!" and discord.utils.find(lambda r: r.name.endswith(" hour"), member.roles):
             reminders.append(Reminder(member))
+        # would use >"any" in ...< but not sure how roles are formatted
+        elif member.game != None and discord.utils.find(lambda r: r.name.endswith(" any"), member.roles):
+            reminders.append(Reminder(member))
 
 @client.event
 async def on_message(message):
@@ -49,29 +52,47 @@ async def on_message(message):
 @client.event
 async def on_member_update(before, after):
     # check if member has a reminder role
-    reminder_role = discord.utils.find(lambda r: r.name.endswith(" hour"), after.roles)
+    reminder_role = discord.utils.find(lambda r: "hour" in r.name, after.roles)
     if not reminder_role:
         return
 
     global reminders
-    # if user wasnt playing osu, and now is
-    if (before.game == None or before.game.name != "osu!") and (after.game != None and after.game.name == "osu!"):
-        # set reminder
-        reminders.append(Reminder(after))
-        logging.info("Set reminder for {} ({})".format(after.name, after.id))
-    # elif user was playing osu, and now isnt
-    elif (before.game != None and before.game.name == "osu!") and (after.game == None or after.game.name != "osu!"):
-        # cancel reminder
-        reminders = [r for r in reminders if r.member != after]
-        logging.info("Cancelled reminder for {} ({})".format(after.name, after.id))
+    # if member only wants to be notified while playing osu
+    if "any" not in reminder_role:
+        # if user wasnt playing osu, and now is
+        if (before.game == None or before.game.name != "osu!") and (after.game != None and after.game.name == "osu!"):
+            # set reminder
+            reminders.append(Reminder(after))
+            logging.info("Set reminder for {} ({})".format(after.name, after.id))
+        # elif user was playing osu, and now isnt
+        elif (before.game != None and before.game.name == "osu!") and (after.game == None or after.game.name != "osu!"):
+            # cancel reminder
+            reminders = [r for r in reminders if r.member != after]
+            logging.info("Cancelled reminder for {} ({})".format(after.name, after.id))
+    else:
+        # if user wasnt playing a game
+        if before.game == None and after.game != None:
+            # set reminder
+            reminders.append(Reminder(after))
+            logging.info("Set reminder for {} ({})".format(after.name, after.id))
+        # elif user was playing a game, and now isnt
+        elif before.game != None and after.game == None:
+            # cancel reminder
+            reminders = [r for r in reminders if r.member != after]
+            logging.info("Cancelled reminder for {} ({})".format(after.name, after.id))
 
 async def update_role(message):
     role_name = message.content.split(maxsplit=1)[1].lower()
+    hour_options = ["0.5", "1", "2", "3"]
+    role_options = []
+    for hour in hour_options:
+        role_options.append(hour + " hour")
+        role_options.append(hour + " hour any")
     if role_name == "none":
         await client.remove_roles(message.author, *[r for r in message.author.roles if r.name.endswith(" hour")])
         await client.send_message(message.channel, "Reminders stopped for {}".format(message.author.mention))
         logging.info("Removing roles from {} ({})".format(message.author.name, message.author.id))
-    elif role_name in ["0.5 hour", "1 hour", "2 hour", "3 hour"]:
+    elif role_name in role_options:
         role = discord.utils.get(message.server.roles, name=role_name)
         await client.replace_roles(message.author, *([r for r in message.author.roles if not r.name.endswith(" hour")] + [role]))
         await client.send_message(message.channel, "{} reminders set for {}".format(role_name, message.author.mention))
