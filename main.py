@@ -19,7 +19,7 @@ class Reminder:
         logging.info("Reminder created: " + str(self))
     
     def reminder_time(self):
-        reminder_role = discord.utils.find(lambda r: r.name.endswith(" hour"), self.member.roles)
+        reminder_role = discord.utils.find(lambda r: "hour" in r.name, self.member.roles)
         return self.timer_start + float(reminder_role.name.split()[0]) * 3600
 
     def __repr__(self):
@@ -58,7 +58,7 @@ async def on_member_update(before, after):
 
     global reminders
     # if member only wants to be notified while playing osu
-    if "any" not in reminder_role:
+    if "any" not in reminder_role.name:
         # if user wasnt playing osu, and now is
         if (before.game == None or before.game.name != "osu!") and (after.game != None and after.game.name == "osu!"):
             # set reminder
@@ -89,12 +89,12 @@ async def update_role(message):
         role_options.append(hour + " hour")
         role_options.append(hour + " hour any")
     if role_name == "none":
-        await client.remove_roles(message.author, *[r for r in message.author.roles if r.name.endswith(" hour")])
+        await client.remove_roles(message.author, *[r for r in message.author.roles if "hour" in r.name])
         await client.send_message(message.channel, "Reminders stopped for {}".format(message.author.mention))
         logging.info("Removing roles from {} ({})".format(message.author.name, message.author.id))
     elif role_name in role_options:
         role = discord.utils.get(message.server.roles, name=role_name)
-        await client.replace_roles(message.author, *([r for r in message.author.roles if not r.name.endswith(" hour")] + [role]))
+        await client.replace_roles(message.author, *([r for r in message.author.roles if "hour" not in r.name] + [role]))
         await client.send_message(message.channel, "{} reminders set for {}".format(role_name, message.author.mention))
         logging.info("Setting {} role from {} ({})".format(role_name, message.author.name, message.author.id))
     else:
