@@ -37,10 +37,14 @@ async def on_ready():
     # On startup, check for users who are playing osu! and set their reminders
     global reminders
     for member in client.get_server("412943020850413570").members:
+        # osu reminder members if they are playing osu
         if member.game != None and member.game.name == "osu!" and discord.utils.find(lambda r: r.name.endswith(" hour"), member.roles):
             reminders.append(Reminder(member))
-        # would use >"any" in ...< but not sure how roles are formatted
+        # any game reminder members if they are playing a game
         elif member.game != None and discord.utils.find(lambda r: r.name.endswith(" any"), member.roles):
+            reminders.append(Reminder(member))
+        # always reminder members if they are online
+        elif member.status != discord.Status.offline and discord.utils.find(lambda r: r.name.endswith(" online"), member.roles):
             reminders.append(Reminder(member))
 
 @client.event
@@ -58,7 +62,7 @@ async def on_member_update(before, after):
 
     global reminders
     # if member only wants to be notified while playing osu
-    if "any" not in reminder_role.name:
+    if reminder_role.name.endswith("hour"):
         # if user wasnt playing osu, and now is
         if (before.game == None or before.game.name != "osu!") and (after.game != None and after.game.name == "osu!"):
             # set reminder
@@ -69,7 +73,8 @@ async def on_member_update(before, after):
             # cancel reminder
             reminders = [r for r in reminders if r.member != after]
             logging.info("Cancelled reminder for {} ({})".format(after.name, after.id))
-    else:
+    # if member wants to be notified when playing any game
+    elif reminder_role.name.endswith("any"):
         # if user wasnt playing a game
         if before.game == None and after.game != None:
             # set reminder
@@ -80,6 +85,19 @@ async def on_member_update(before, after):
             # cancel reminder
             reminders = [r for r in reminders if r.member != after]
             logging.info("Cancelled reminder for {} ({})".format(after.name, after.id))
+    # if member wants to be notified when online
+    elif reminder_role.name.endswith("online"):
+        # if user wasnt online and now is
+        if before.status == discord.Status.offline and after.status != discord.Status.offline:
+            # set reminder
+            reminders.append(Reminder(after))
+            logging.info("Set reminder for {} ({})".format(after.name, after.id))
+        # elif user was online and now isnt
+        elif before.status != discord.Status.offline and after.status == discord.Status.offline:
+            # cancel reminder
+            reminders = [r for r in reminders if r.member != after]
+            logging.info("Cancelled reminder for {} ({})".format(after.name, after.id))
+
 
 async def update_role(message):
     role_name = message.content.split(maxsplit=1)[1].lower()
@@ -88,6 +106,7 @@ async def update_role(message):
     for hour in hour_options:
         role_options.append(hour + " hour")
         role_options.append(hour + " hour any")
+        role_options.append(hour + " hour online")
     if role_name == "none":
         await client.remove_roles(message.author, *[r for r in message.author.roles if "hour" in r.name])
         await client.send_message(message.channel, "Reminders stopped for {}".format(message.author.mention))
@@ -119,7 +138,8 @@ async def reminder_checks():
             await client.send_message(reminder_channel, mentions + " Time to stretch!")
             logging.info("Reminder sent to: " + ", ".join([ r.member.name for r in passed_reminders ]))
 
-        passed_reminders.clear()
+            passed_reminders.clear()
+            
         await asyncio.sleep(10)
 
 
