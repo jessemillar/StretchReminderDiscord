@@ -46,7 +46,7 @@ class AutoReminders(commands.Cog):
         if next((r for r in self.reminders if r.member == member), None) is not None:
             return
         # osu reminder members if they are playing osu
-        if member.activity != None and member.activity.name == "osu!" and discord.utils.find(lambda r: r.name.endswith(" hour"), member.roles):
+        if member.activity != None and member.activity.name in self.config["osu_game_names"] and discord.utils.find(lambda r: r.name.endswith(" hour"), member.roles):
             self.reminders.append(Reminder(member))
         # any game reminder members if they are playing a game
         elif member.activity != None and discord.utils.find(lambda r: r.name.endswith(" any"), member.roles):
@@ -65,12 +65,12 @@ class AutoReminders(commands.Cog):
         # if member only wants to be notified while playing osu
         if reminder_role.name.endswith("hour"):
             # if user wasnt playing osu, and now is
-            if (before.activity == None or before.activity.name != "osu!") and (after.activity != None and after.activity.name == "osu!"):
+            if (before.activity == None or before.activity.name not in self.config["osu_game_names"]) and (after.activity != None and after.activity.name in self.config["osu_game_names"]):
                 # set reminder
                 self.reminders.append(Reminder(after))
                 logger.info("Set reminder for {}".format(after.id))
             # elif user was playing osu, and now isnt
-            elif (before.activity != None and before.activity.name == "osu!") and (after.activity == None or after.activity.name != "osu!"):
+            elif (before.activity != None and before.activity.name in self.config["osu_game_names"]) and (after.activity == None or after.activity.name not in self.config["osu_game_names"]):
                 # cancel reminder
                 self.reminders = [r for r in self.reminders if r.member != after]
                 logger.info("Cancelled reminder for {}".format(after.id))
