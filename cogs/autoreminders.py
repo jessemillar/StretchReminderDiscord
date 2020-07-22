@@ -111,7 +111,7 @@ class AutoReminders(commands.Cog):
         
         # Remove old reminder and add new reminder
         self.reminders = [r for r in self.reminders if r.member != ctx.author]
-        logger.info("Cancelled reminder for {}".format( ctx.author.id))
+        logger.info("Cancelled reminder for {}".format(ctx.author.id))
         self.add_reminder(ctx.author)
 
     @setrole.error
@@ -124,7 +124,7 @@ class AutoReminders(commands.Cog):
     async def stop(self, ctx):
         # Remove reminder
         self.reminders = [r for r in self.reminders if r.member != ctx.author]
-        logger.info("Cancelled reminder for {}".format( ctx.author.id))
+        logger.info("Cancelled reminder for {}".format(ctx.author.id))
         
         # Remove current reminder role
         await ctx.author.remove_roles(*[r for r in ctx.author.roles if r.id in self.config["assignable_role_ids"]], reason="Setting new exclusive role")
