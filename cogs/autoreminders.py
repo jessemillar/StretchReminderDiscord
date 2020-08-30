@@ -56,6 +56,10 @@ class AutoReminders(commands.Cog):
             self.reminders.append(Reminder(member))
 
     @commands.Cog.listener()
+    async def on_member_remove(self, member):
+        self.reminders = [r for r in self.reminders if r.member != member]
+
+    @commands.Cog.listener()
     async def on_member_update(self, before, after):
         # check if member has a reminder role
         reminder_role = discord.utils.find(lambda r: "hour" in r.name, after.roles)
