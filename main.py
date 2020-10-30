@@ -1,3 +1,5 @@
+import discord
+
 import json
 import logging
 
@@ -25,7 +27,10 @@ def main():
         config = json.load(fp)
 
     # Initialise bot instance
-    bot = StretchRemindersBot(command_prefix="!")
+    intents = discord.Intents.default()
+    intents.members = True
+    intents.presences = True
+    bot = StretchRemindersBot(command_prefix="!", intents=intents)
 
     # Load extensions
     bot.load_extension("cogs.admin")
