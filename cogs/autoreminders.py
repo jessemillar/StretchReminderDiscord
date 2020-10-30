@@ -142,7 +142,6 @@ class AutoReminders(commands.Cog):
     @tasks.loop(seconds=5.0)
     async def remind(self):
         for reminder in self.reminders:
-            print(time.time() - reminder.reminder_time())
             if reminder.reminder_time() < time.time():
                 reminder_channel = self.bot.get_channel(self.config["reminder_channel_id"])
                 await reminder_channel.send("It's stretching time, {0.mention}!".format(reminder.member))
