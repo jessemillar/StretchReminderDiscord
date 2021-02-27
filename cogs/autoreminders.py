@@ -12,7 +12,7 @@ class Reminder:
     def __init__(self, member):
         self.member = member
         self.timer_start = time.time()
-        logger.info("Set reminder for {}".format(member.id))
+        logger.info("Reminder created for {}".format(member.id))
 
     def reminder_time(self):
         reminder_role = discord.utils.find(lambda r: "hour" in r.name, self.member.roles)
