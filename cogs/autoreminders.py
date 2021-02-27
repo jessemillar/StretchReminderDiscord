@@ -111,7 +111,7 @@ class AutoReminders(commands.Cog):
 
         # Add new role
         await ctx.author.add_roles(role, reason="Role requests via command")
-        await ctx.send('"{0.name}" has set for {1.mention}.'.format(role, ctx.author))
+        await ctx.send('"{0.name}" has been set for {1.mention}.'.format(role, ctx.author))
         
         # Remove old reminder and add new reminder
         self.reminders = [r for r in self.reminders if r.member != ctx.author]
