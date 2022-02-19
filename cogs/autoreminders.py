@@ -5,23 +5,18 @@ import os
 import json
 import time
 import logging
+import random
 
 logger = logging.getLogger(__name__)
 
 class Reminder:
     def __init__(self, member):
         self.member = member
-        logger.info("init self.member --> {0}".format(self.member))
-        logger.info("init self.member.roles --> {0}".format(self.member.roles))
         self.timer_start = time.time()
         logger.info("Reminder created for {}".format(member.id))
 
     def reminder_time(self):
-        logger.info("reminter_time self.member --> {0}".format(self.member))
-        logger.info("reminter_time self.member.roles --> {0}".format(self.member.roles))
-        reminder_role = discord.utils.find(lambda r: "Stretch after" in r.name, self.member.roles)
-        #  logger.info(reminder_role)
-        logger.info("reminter_time reminder_role ---> {0}".format(reminder_role))
+        reminder_role = discord.utils.find(lambda r: self.config["role_search_phrase"] in r.name, self.member.roles)
         return self.timer_start + float(reminder_role.name.split()[2]) * 60
 
 class AssignableRole(commands.RoleConverter):
@@ -46,10 +41,6 @@ class AutoReminders(commands.Cog):
         self.remind.cancel()
 
     def cog_check(self, ctx):
-        # Only cog only usable within osu! Stretch reminders guild
-        logger.info(ctx.guild.id)
-        logger.info(self.bot.config)
-        logger.info(ctx.guild.id == self.bot.config["guild_id"])
         return ctx.guild.id == self.bot.config["guild_id"]
 
     def add_reminder(self, member):
@@ -57,7 +48,7 @@ class AutoReminders(commands.Cog):
         if next((r for r in self.reminders if r.member == member), None) is not None:
             return
         # osu reminder members if they are playing osu
-        if member.activity != None and member.activity.name in self.config["osu_game_names"] and discord.utils.find(lambda r: r.name.endswith(" hour"), member.roles):
+        if member.activity != None and member.activity.name in self.config["osu_game_names"] and discord.utils.find(lambda r: r.name.endswith(" minutes"), member.roles):
             self.reminders.append(Reminder(member))
         # any game reminder members if they are playing a game
         elif member.activity != None and discord.utils.find(lambda r: r.name.endswith(" any"), member.roles):
@@ -73,12 +64,12 @@ class AutoReminders(commands.Cog):
     @commands.Cog.listener()
     async def on_member_update(self, before, after):
         # check if member has a reminder role
-        reminder_role = discord.utils.find(lambda r: "hour" in r.name, after.roles)
+        reminder_role = discord.utils.find(lambda r: self.config["role_search_phrase"] in r.name, after.roles)
         if not reminder_role:
             return
 
         # if member only wants to be notified while playing osu
-        if reminder_role.name.endswith("hour"):
+        if reminder_role.name.endswith("minutes"):
             # if user wasnt playing osu, and now is
             if (before.activity == None or before.activity.name not in self.config["osu_game_names"]) and (after.activity != None and after.activity.name in self.config["osu_game_names"]):
                 # set reminder
@@ -146,21 +137,18 @@ class AutoReminders(commands.Cog):
         await ctx.author.remove_roles(*[r for r in ctx.author.roles if r.id in self.config["assignable_role_ids"]], reason="Setting new exclusive role")
         await ctx.send('Reminders have been stopped for {0.mention}.'.format(ctx.author))
 
-    @setrole.error
-    async def setrole_error(self, ctx, error):
-        if isinstance(error, commands.BadArgument):
-            await ctx.send(error)
-
     @tasks.loop(seconds=5.0)
     async def remind(self):
         for reminder in self.reminders:
-            logging.info(reminder)
+            logging.info("Checking if it's time to remind {0}".format(reminder.member.name))
             if reminder.reminder_time() < time.time():
-                logger.info("Reminder sending for {reminder.member.id}")
+                logger.info("Reminder sending for {0}".format(reminder.member.name))
                 reminder_channel = self.bot.get_channel(self.config["reminder_channel_id"])
-                await reminder_channel.send("It's stretching time, {0.mention}!".format(reminder.member))
-                logger.info(f"Reminder sent for {reminder.member.id}")
+                await reminder_channel.send("{0}, {1.mention}!".format(random.choice(self.config["reminder_messages"]), reminder.member))
+                logger.info("Reminder sent for {0}".format(reminder.member.name))
                 reminder.timer_start = time.time()
+            else:
+                logging.info("It's not time to send {0} a reminder".format(reminder.member.name))
 
     @remind.before_loop
     async def before_remind(self):

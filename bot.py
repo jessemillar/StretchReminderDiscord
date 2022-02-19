@@ -4,6 +4,7 @@ from discord.ext import commands
 import sys
 import logging
 import traceback
+import random
 
 logger = logging.getLogger(__name__)
 
@@ -20,8 +21,8 @@ class StretchRemindersBot(commands.Bot):
 
     async def on_ready(self):
         logger.info("Bot ready...")
-        await self.change_presence(activity=discord.Game(name="at the gym"))
-    
+        await self.change_presence(activity=discord.Game(name=random.choice(self.config["bot_presence_options"])))
+
     def run(self, config):
         logger.info("Bot starting...")
         self.config = config
