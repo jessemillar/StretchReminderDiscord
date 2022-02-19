@@ -19,10 +19,10 @@ class Reminder:
     def reminder_time(self):
         logger.info("reminter_time self.member --> {0}".format(self.member))
         logger.info("reminter_time self.member.roles --> {0}".format(self.member.roles))
-        reminder_role = discord.utils.find(lambda r: "hour" in r.name, self.member.roles)
+        reminder_role = discord.utils.find(lambda r: "Stretch after" in r.name, self.member.roles)
         #  logger.info(reminder_role)
         logger.info("reminter_time reminder_role ---> {0}".format(reminder_role))
-        return self.timer_start + float(reminder_role.name.split()[0]) * 3600
+        return self.timer_start + float(reminder_role.name.split()[2]) * 60
 
 class AssignableRole(commands.RoleConverter):
     async def convert(self, ctx, argument):
