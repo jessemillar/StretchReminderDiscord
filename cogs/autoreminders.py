@@ -11,11 +11,17 @@ logger = logging.getLogger(__name__)
 class Reminder:
     def __init__(self, member):
         self.member = member
+        logger.info("init self.member --> {0}".format(self.member))
+        logger.info("init self.member.roles --> {0}".format(self.member.roles))
         self.timer_start = time.time()
         logger.info("Reminder created for {}".format(member.id))
 
     def reminder_time(self):
+        logger.info("reminter_time self.member --> {0}".format(self.member))
+        logger.info("reminter_time self.member.roles --> {0}".format(self.member.roles))
         reminder_role = discord.utils.find(lambda r: "hour" in r.name, self.member.roles)
+        #  logger.info(reminder_role)
+        logger.info("reminter_time reminder_role ---> {0}".format(reminder_role))
         return self.timer_start + float(reminder_role.name.split()[0]) * 3600
 
 class AssignableRole(commands.RoleConverter):
@@ -47,6 +53,7 @@ class AutoReminders(commands.Cog):
         return ctx.guild.id == self.bot.config["guild_id"]
 
     def add_reminder(self, member):
+        logger.info("member --> {0}".format(member.roles))
         if next((r for r in self.reminders if r.member == member), None) is not None:
             return
         # osu reminder members if they are playing osu
@@ -147,8 +154,9 @@ class AutoReminders(commands.Cog):
     @tasks.loop(seconds=5.0)
     async def remind(self):
         for reminder in self.reminders:
+            logging.info(reminder)
             if reminder.reminder_time() < time.time():
-                logger.info(f"Reminder sending for {reminder.member.id}")
+                logger.info("Reminder sending for {reminder.member.id}")
                 reminder_channel = self.bot.get_channel(self.config["reminder_channel_id"])
                 await reminder_channel.send("It's stretching time, {0.mention}!".format(reminder.member))
                 logger.info(f"Reminder sent for {reminder.member.id}")

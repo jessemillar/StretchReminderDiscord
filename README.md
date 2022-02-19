@@ -17,13 +17,13 @@ Will likely rewrite with a proper structure at a later date.
 - Document config.json
 	{
 	"bot_token": "token123"
-	"reminder_channel_id": ""
+	"guild_id": 1234
 	}
 - Document cogs/autoreminders.config.json ("guild_id" is your server ID)
 	{
 	"osu_game_names": [""],
-	"assignable_role_ids": [""],
-	"guild_id": ""
+	"assignable_role_ids": [5678],
+	"reminder_channel_id": 1234
 	}
 
 ## Instructions
