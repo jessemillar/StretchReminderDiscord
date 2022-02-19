@@ -24,6 +24,7 @@ class AssignableRole(commands.RoleConverter):
         if role.id in ctx.cog.config["assignable_role_ids"]:
             return role
         else:
+            logger.info('Role "{}" is not assignable.'.format(argument))
             raise commands.BadArgument('Role "{}" is not assignable.'.format(argument))
 
 class AutoReminders(commands.Cog):
@@ -37,9 +38,12 @@ class AutoReminders(commands.Cog):
 
     def cog_unload(self):
         self.remind.cancel()
-    
+
     def cog_check(self, ctx):
         # Only cog only usable within osu! Stretch reminders guild
+        logger.info(ctx.guild.id)
+        logger.info(self.bot.config)
+        logger.info(ctx.guild.id == self.bot.config["guild_id"])
         return ctx.guild.id == self.bot.config["guild_id"]
 
     def add_reminder(self, member):
@@ -106,13 +110,14 @@ class AutoReminders(commands.Cog):
     @commands.command(name="set")
     @commands.guild_only()
     async def setrole(self, ctx, *, role: AssignableRole):
+        logger.info("Cancelling reminder for {}".format(ctx.author.id))
         # Remove current reminder role
         await ctx.author.remove_roles(*[r for r in ctx.author.roles if r.id in self.config["assignable_role_ids"]], reason="Setting new exclusive role")
 
         # Add new role
         await ctx.author.add_roles(role, reason="Role requests via command")
         await ctx.send('"{0.name}" has been set for {1.mention}.'.format(role, ctx.author))
-        
+
         # Remove old reminder and add new reminder
         self.reminders = [r for r in self.reminders if r.member != ctx.author]
         logger.info("Cancelled reminder for {}".format(ctx.author.id))
@@ -129,7 +134,7 @@ class AutoReminders(commands.Cog):
         # Remove reminder
         self.reminders = [r for r in self.reminders if r.member != ctx.author]
         logger.info("Cancelled reminder for {}".format(ctx.author.id))
-        
+
         # Remove current reminder role
         await ctx.author.remove_roles(*[r for r in ctx.author.roles if r.id in self.config["assignable_role_ids"]], reason="Setting new exclusive role")
         await ctx.send('Reminders have been stopped for {0.mention}.'.format(ctx.author))
@@ -143,6 +148,7 @@ class AutoReminders(commands.Cog):
     async def remind(self):
         for reminder in self.reminders:
             if reminder.reminder_time() < time.time():
+                logger.info(f"Reminder sending for {reminder.member.id}")
                 reminder_channel = self.bot.get_channel(self.config["reminder_channel_id"])
                 await reminder_channel.send("It's stretching time, {0.mention}!".format(reminder.member))
                 logger.info(f"Reminder sent for {reminder.member.id}")
