@@ -15,8 +15,8 @@ class Reminder:
         self.timer_start = time.time()
         logger.info("Reminder created for {}".format(member.id))
 
-    def reminder_time(self):
-        reminder_role = discord.utils.find(lambda r: self.config["role_search_phrase"] in r.name, self.member.roles)
+    def reminder_time(self, roleSearchPhrase):
+        reminder_role = discord.utils.find(lambda r: roleSearchPhrase in r.name, self.member.roles)
         return self.timer_start + float(reminder_role.name.split()[2]) * 60
 
 class AssignableRole(commands.RoleConverter):
@@ -51,7 +51,7 @@ class AutoReminders(commands.Cog):
         if member.activity != None and member.activity.name in self.config["osu_game_names"] and discord.utils.find(lambda r: r.name.endswith(" minutes"), member.roles):
             self.reminders.append(Reminder(member))
         # any game reminder members if they are playing a game
-        elif member.activity != None and discord.utils.find(lambda r: r.name.endswith(" any"), member.roles):
+        elif member.activity != None and discord.utils.find(lambda r: r.name.endswith(" any game"), member.roles):
             self.reminders.append(Reminder(member))
         # always reminder members if they are online
         elif member.status != discord.Status.offline and discord.utils.find(lambda r: r.name.endswith(" online"), member.roles):
@@ -81,7 +81,7 @@ class AutoReminders(commands.Cog):
                 self.reminders = [r for r in self.reminders if r.member != after]
                 logger.info("Cancelled reminder for {}".format(after.id))
         # if member wants to be notified when playing any game
-        elif reminder_role.name.endswith("any"):
+        elif reminder_role.name.endswith("any game"):
             # if user wasnt playing a game
             if before.activity == None and after.activity != None:
                 # set reminder
@@ -141,14 +141,12 @@ class AutoReminders(commands.Cog):
     async def remind(self):
         for reminder in self.reminders:
             logging.info("Checking if it's time to remind {0}".format(reminder.member.name))
-            if reminder.reminder_time() < time.time():
+            if reminder.reminder_time(self.config["role_search_phrase"]) < time.time():
                 logger.info("Reminder sending for {0}".format(reminder.member.name))
                 reminder_channel = self.bot.get_channel(self.config["reminder_channel_id"])
-                await reminder_channel.send("{0}, {1.mention}!".format(random.choice(self.config["reminder_messages"]), reminder.member))
+                await reminder_channel.send(random.choice(self.config["reminder_messages"]).format(reminder.member.mention))
                 logger.info("Reminder sent for {0}".format(reminder.member.name))
                 reminder.timer_start = time.time()
-            else:
-                logging.info("It's not time to send {0} a reminder".format(reminder.member.name))
 
     @remind.before_loop
     async def before_remind(self):
