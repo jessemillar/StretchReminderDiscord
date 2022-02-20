@@ -34,14 +34,22 @@ class AutoReminders(commands.Cog):
         self.config = config
         self.reminders = []
 
-        # Start task
+        # Start tasks
         self.remind.start()
+        self.update_random_status.start()
 
     def cog_unload(self):
         self.remind.cancel()
+        self.update_random_status.cancel()
 
     def cog_check(self, ctx):
         return ctx.guild.id == self.bot.config["guild_id"]
+
+    @tasks.loop(minutes=30.0)
+    async def update_random_status(self):
+        await self.bot.wait_until_ready()
+        logger.info("Changing bot status")
+        await self.bot.change_presence(activity=discord.Game(name=random.choice(self.bot.config["bot_presence_options"])))
 
     def add_reminder(self, member):
         logger.info("member --> {0}".format(member.roles))
@@ -67,6 +75,11 @@ class AutoReminders(commands.Cog):
         reminder_role = discord.utils.find(lambda r: self.config["role_search_phrase"] in r.name, after.roles)
         if not reminder_role:
             return
+
+        if after.status == discord.Status.idle:
+            # cancel reminder
+            self.reminders = [r for r in self.reminders if r.member != after]
+            logger.info("Cancelled reminder for {}".format(after.id))
 
         # if member only wants to be notified while playing osu
         if reminder_role.name.endswith("minutes"):
