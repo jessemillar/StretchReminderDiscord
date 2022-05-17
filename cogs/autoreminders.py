@@ -76,11 +76,6 @@ class AutoReminders(commands.Cog):
         if not reminder_role:
             return
 
-        if after.status == discord.Status.idle:
-            # cancel reminder
-            self.reminders = [r for r in self.reminders if r.member != after]
-            logger.info("Cancelled reminder for {}".format(after.id))
-
         # if member only wants to be notified while playing osu
         if reminder_role.name.endswith("minutes"):
             # if user wasnt playing osu, and now is
@@ -153,7 +148,6 @@ class AutoReminders(commands.Cog):
     @tasks.loop(seconds=5.0)
     async def remind(self):
         for reminder in self.reminders:
-            logging.info("Checking if it's time to remind {0}".format(reminder.member.name))
             if reminder.reminder_time(self.config["role_search_phrase"]) < time.time():
                 logger.info("Reminder sending for {0}".format(reminder.member.name))
                 reminder_channel = self.bot.get_channel(self.config["reminder_channel_id"])
